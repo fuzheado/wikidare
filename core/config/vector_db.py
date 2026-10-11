@@ -2,7 +2,11 @@ from typing import Any, Dict
 
 from django.conf import settings
 
-VECTOR_DIMENSION = 3072
+from config.env import EMBEDDING_DIMENSION
+
+# Single source of truth is the EMBEDDING_DIMENSION environment variable; see
+# config/env.py. Kept as a module constant because several call sites import it.
+VECTOR_DIMENSION = EMBEDDING_DIMENSION
 
 NAMESPACE_SEPARATOR = "_"
 

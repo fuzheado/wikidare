@@ -12,8 +12,18 @@ class VectorIntegrityError(ValueError):
 
 
 def validate_embedding(vector):
-    if not isinstance(vector, (list, tuple)) or len(vector) != VECTOR_DIMENSION:
-        raise VectorIntegrityError("Embedding has an incorrect dimension or is empty")
+    # Only lengths are ever reported, never vector contents: these errors surface
+    # to users and must not carry provider payloads.
+    if not isinstance(vector, (list, tuple)) or not vector:
+        raise VectorIntegrityError("Embedding is missing or empty")
+    if len(vector) != VECTOR_DIMENSION:
+        raise VectorIntegrityError(
+            f"Embedding dimension mismatch: got {len(vector)}, expected "
+            f"{VECTOR_DIMENSION}. Either the embedding model does not match "
+            f"EMBEDDING_DIMENSION, or the vector store's collection was created "
+            f"with a different dimensionality. Run 'manage.py check_embeddings' "
+            f"before ingesting."
+        )
     if any(
         isinstance(value, bool)
         or not isinstance(value, Real)

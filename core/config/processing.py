@@ -22,6 +22,9 @@ CHUNK_SIZE = _int_env("RAG_CHUNK_SIZE", 1500)
 OVERLAP_SIZE = _int_env("RAG_OVERLAP_SIZE", 180)
 
 BATCH_SIZE = 100
-VECTOR_DIMENSION = 3072
+# Must match the embedding model's output size AND the dimension the vector
+# store collection was created with. Env-driven so that switching embedders is
+# configuration rather than a code change.
+VECTOR_DIMENSION = _int_env("EMBEDDING_DIMENSION", 3072)
 DEFAULT_SIMILARITY_THRESHOLD = 0.5
 DEFAULT_TOP_K = 10

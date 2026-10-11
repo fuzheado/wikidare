@@ -59,6 +59,21 @@ PINECONE_API_KEY = env("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = env("PINECONE_INDEX_NAME")
 OPENAI_API_KEY = env("OPENAI_API_KEY")
 BACKGROUND_MODEL = os.getenv("BACKGROUND_MODEL", "gpt-5.6-luna")
+
+# --- Embedding provider -------------------------------------------------------
+# DARE's compiled-in default is OpenAI's text-embedding-3-large at 3072
+# dimensions. A self-hosted deployment can point this at any OpenAI-compatible
+# /embeddings server instead -- wikidare uses Ollama serving bge-m3 (1024
+# dimensions, multilingual) so that material which may not leave the host never
+# does, and so retrieval is not English-only.
+#
+# EMBEDDING_DIMENSION must match BOTH the model's output size AND the dimension
+# the vector store's collection was created with. Changing it after documents
+# have been ingested requires re-embedding the whole corpus.
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-large")
+EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL") or None
+EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY") or None
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION", "3072"))
 CLAUDE_API_KEY = env("CLAUDE_API_KEY")
 GEMINI_API_KEY = env("GEMINI_API_KEY")
 OLLAMA_HOST = env("OLLAMA_HOST", default="http://localhost:11434")
