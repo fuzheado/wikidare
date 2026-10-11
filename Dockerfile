@@ -16,6 +16,15 @@ WORKDIR /app
 
 COPY requirements/ requirements/
 
+# Optional extra package index for the build, e.g. a CPU-only wheel index:
+#   PIP_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu
+# Empty by default, so upstream behaviour is unchanged. pip reads
+# PIP_EXTRA_INDEX_URL from the environment itself, so the command below needs no
+# change. On a host with no GPU this avoids roughly 1.2 GB of CUDA wheels that
+# could never be loaded.
+ARG PIP_EXTRA_INDEX_URL=""
+ENV PIP_EXTRA_INDEX_URL=${PIP_EXTRA_INDEX_URL}
+
 RUN pip install --no-cache-dir --prefix=/install -r requirements/prod.txt
 
 # ============================================
