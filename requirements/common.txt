@@ -23,6 +23,13 @@ django-environ~=0.12.0
 
 # CORS Headers (Optional, for API development)
 django-cors-headers~=3.13.0
+# Serves /static/ in a DEBUG=False deployment. Without it there is NO static
+# server at all: Django itself only serves static under runserver, and the
+# production settings are DEBUG=False, so /static/admin/... 404s and the Django
+# admin renders as unstyled HTML. Wraps STATIC_ROOT at STATIC_URL with no further
+# configuration. The compressed-manifest storage is deliberately NOT used, because
+# it turns a failed collectstatic into 500s rather than plain missing-file 404s.
+whitenoise~=6.8
 
 # error monitoring
 sentry-sdk~= 2.26.1

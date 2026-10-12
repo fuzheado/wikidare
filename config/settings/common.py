@@ -90,6 +90,11 @@ INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS + THIRD_PARTY_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # Must sit directly after SecurityMiddleware. Django only serves static files
+    # under runserver, and this project runs DEBUG=False behind uvicorn/gunicorn,
+    # so without this line nothing serves /static/ at all and the admin renders as
+    # unstyled HTML. Covers STATIC_URL only -- MEDIA_URL needs a reverse proxy.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
