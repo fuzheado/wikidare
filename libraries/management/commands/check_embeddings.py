@@ -170,13 +170,35 @@ class Command(BaseCommand):
                     )
                 else:
                     self._note(f"catalogue model: {model.__name__}")
-                    mismatched = list(model.objects.exclude(dims=VECTOR_DIMENSION))
+                    # ONLY available entries are policed. An unavailable entry is
+                    # not selectable, so its declared dimension cannot produce a
+                    # bad search -- and upstream deliberately seeds a placeholder
+                    # with dims=0 and is_available=False ('coming soon'). Flagging
+                    # that was a false positive that would have failed the gate in
+                    # every deployment forever.
                     total = model.objects.count()
-                    if not total:
-                        self._ok(
-                            "no catalogue entries yet -- nothing to reconcile"
+                    available_qs = model.objects.filter(is_available=True)
+                    n_available = available_qs.count()
+                    n_unavailable = total - n_available
+                    if n_unavailable:
+                        self._note(
+                            f"{n_unavailable} catalogue entry(ies) are marked "
+                            f"unavailable and were not checked"
                         )
-                    elif mismatched:
+                    if total == 0:
+                        self._ok("no catalogue entries yet -- nothing to reconcile")
+                    elif n_available == 0:
+                        self._note(
+                            "every catalogue entry is marked unavailable -- nothing "
+                            "to check"
+                        )
+                    else:
+                        mismatched = list(available_qs.exclude(dims=VECTOR_DIMENSION))
+                        if not mismatched:
+                            self._ok(
+                                f"all {n_available} available catalogue record(s) "
+                                f"record dims={VECTOR_DIMENSION}"
+                            )
                         for lib in mismatched:
                             ident = (
                                 getattr(lib, "slug", None)
@@ -185,15 +207,21 @@ class Command(BaseCommand):
                             )
                             self._fail(
                                 failures,
-                                f"catalogue entry '{ident}' records dims={lib.dims}, "
-                                f"expected {VECTOR_DIMENSION} -- its corpus must be "
-                                f"re-embedded",
+                                f"catalogue entry '{ident}' is AVAILABLE but records "
+                                f"dims={lib.dims} (embedding_model="
+                                f"'{lib.embedding_model or 'unset'}'), while this "
+                                f"deployment's query embedder produces "
+                                f"{VECTOR_DIMENSION}. A library must match the query "
+                                f"embedder to be searchable, so selecting it would "
+                                f"fail. Either import it with the configured "
+                                f"embedder, or mark it unavailable if this "
+                                f"deployment does not host that corpus.",
                             )
-                    else:
-                        self._ok(
-                            f"all {total} catalogue record(s) record "
-                            f"dims={VECTOR_DIMENSION}"
-                        )
+            except Exception as exc:  # noqa: BLE001
+                self._fail(
+                    failures,
+                    f"the library-catalogue check could not run: {exc}",
+                )
             except Exception as exc:  # noqa: BLE001
                 self._fail(
                     failures,
