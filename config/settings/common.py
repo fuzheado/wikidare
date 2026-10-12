@@ -203,7 +203,7 @@ AUTH_USER_MODEL = "users.User"
 # Authentication (dj-rest-auth and allauth)
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION = getattr(env, "ACCOUNT_EMAIL_VERIFICATION", "mandatory")
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_ADAPTER = "users.adapter.AccountAdapter"
