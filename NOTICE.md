@@ -1,5 +1,37 @@
 # NOTICE
 
+## Pinned base, and why
+
+This fork is based on upstream commit **`aae893e`** (2026-09-29), not on the current tip.
+
+From 2026-09-29 onward (upstream commit `ac3f5da`) the backend depends on
+**`syftbox-connect`**, a package hosted in a **private** CMU repository and referenced as:
+
+```
+syftbox-connect[api] @ git+ssh://git@github-syftbox/cmudco/syftbox-connect.git@v0.1.2
+```
+
+That package is not on PyPI and is not publicly readable — `github-syftbox` is an SSH config alias that
+resolves only inside CMU's environment. It is also **not optional**:
+
+- it is listed in `INSTALLED_APPS`, so Django imports it at startup
+- it now provides the implementation behind `core/storage/*`, which became re-export shims into it
+- `users/migrations/0038_backfill_syftbox_accounts.py` calls
+  `apps.get_model("syftbox_connect", "SyftBoxAccount")`
+
+The consequence is that upstream's **published source cannot be built** from public access alone, because
+a required dependency is not published. Pinning to the last commit before that extraction is the only way
+to build this project without CMU credentials.
+
+This is recorded rather than quietly patched because it is a property of the **upstream** project, not of
+this fork, and the restriction appears unintentional — the extraction commit says the motivation was so
+that another internal project could reuse the code. It would be worth reporting upstream; if the package
+is published or access is granted, this fork can rebase onto the current tip, since the pinning exists
+solely to make the code buildable.
+
+Upstream work between `aae893e` and the former tip is therefore **not** included: roughly 43 commits
+unrelated to SyftBox (billing fixes, session search, JWT validation, model-name fixes).
+
 ## What this repository is
 
 `wikidare` is an **independent project** derived from **DARE** (the Dietrich
