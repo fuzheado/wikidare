@@ -138,28 +138,67 @@ class Command(BaseCommand):
                 )
 
             # ---- 2. does the library catalogue agree? ---------------------
-            # Library rows carry their own `dims` (a database field with a
+            # Catalogue rows carry their own `dims` (a database field with a
             # default), so they can drift from configuration after a change.
+            #
+            # The model is resolved by LOOKING FOR THE FIELD, not by importing a
+            # name. Upstream renamed this class (`SharedLibrary` at the base this
+            # fork is pinned to, `Library` later), and importing the wrong name
+            # raised ImportError -- which an earlier version of this file caught
+            # and reported as a NOTE, so the check never ran while the summary
+            # still said "all checks passed". A check that cannot run is a
+            # FAILURE, not a note. Resolving by field also survives future
+            # renames.
             self.stdout.write("\n=== library catalogue ===")
             try:
-                from libraries.models import Library
+                from django.apps import apps as django_apps
 
-                mismatched = list(Library.objects.exclude(dims=VECTOR_DIMENSION))
-                total = Library.objects.count()
-                if not total:
-                    self._note("no libraries defined yet -- nothing to reconcile")
-                elif mismatched:
-                    for lib in mismatched:
-                        self._fail(
-                            failures,
-                            f"library '{lib.slug}' records dims={lib.dims}, "
-                            f"expected {VECTOR_DIMENSION} -- its corpus must be "
-                            f"re-embedded",
-                        )
+                model = next(
+                    (
+                        m
+                        for m in django_apps.get_models()
+                        if m._meta.app_label == "libraries"
+                        and any(f.name == "dims" for f in m._meta.get_fields())
+                    ),
+                    None,
+                )
+                if model is None:
+                    self._fail(
+                        failures,
+                        "no model in the 'libraries' app carries a 'dims' field, so "
+                        "the catalogue check could not run",
+                    )
                 else:
-                    self._ok(f"all {total} library record(s) record dims={VECTOR_DIMENSION}")
+                    self._note(f"catalogue model: {model.__name__}")
+                    mismatched = list(model.objects.exclude(dims=VECTOR_DIMENSION))
+                    total = model.objects.count()
+                    if not total:
+                        self._ok(
+                            "no catalogue entries yet -- nothing to reconcile"
+                        )
+                    elif mismatched:
+                        for lib in mismatched:
+                            ident = (
+                                getattr(lib, "slug", None)
+                                or getattr(lib, "name", None)
+                                or lib.pk
+                            )
+                            self._fail(
+                                failures,
+                                f"catalogue entry '{ident}' records dims={lib.dims}, "
+                                f"expected {VECTOR_DIMENSION} -- its corpus must be "
+                                f"re-embedded",
+                            )
+                    else:
+                        self._ok(
+                            f"all {total} catalogue record(s) record "
+                            f"dims={VECTOR_DIMENSION}"
+                        )
             except Exception as exc:  # noqa: BLE001
-                self._note(f"could not read the library catalogue: {exc}")
+                self._fail(
+                    failures,
+                    f"the library-catalogue check could not run: {exc}",
+                )
 
         # ---- 3. does the vector store agree? ------------------------------
         if options["skip_vector_store"]:
